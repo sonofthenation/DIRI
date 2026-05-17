@@ -1,0 +1,8 @@
+.venv/
+.uv-cache/
+.pytest_cache/
+.pytest-tmp/
+__pycache__/
+*.py[cod]
+.diri/
+examples/sample_project/.diri/
