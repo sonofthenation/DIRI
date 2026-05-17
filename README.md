@@ -19,12 +19,20 @@ It does not reward clean architecture, test count, or short functions unless the
 ## Commands
 
 ```bash
-diri init ./project --intent intent.md
-diri discover ./project --intent intent.md
-diri score ./project
-diri plan ./project
+diri init . --intent intent.md
+diri discover . --intent intent.md
+diri score .
+diri plan .
 diri self-score
 diri compare before.json after.json
+```
+
+From inside a project directory, the project argument defaults to the current directory:
+
+```bash
+diri init
+diri score
+diri plan
 ```
 
 `diri self-score` is not a separate evaluator. It runs the same DIRI scoring flow on the DIRI project itself, using DIRI's own `.diri/intent.json` and `.diri/expected_result.json`.

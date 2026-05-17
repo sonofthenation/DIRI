@@ -25,10 +25,14 @@ def main() -> None:
 
 
 @app.command()
-def init(project: Path, intent: Path | None = typer.Option(None, "--intent", "-i", help="Path to intent.md")) -> None:
+def init(
+    project: Path = typer.Argument(Path("."), help="Project directory to initialize. Defaults to current directory."),
+    intent: Path | None = typer.Option(None, "--intent", "-i", help="Path to intent.md"),
+) -> None:
     """Create a .diri workspace and initial intent/result models."""
     try:
-        project_path = project.resolve()
+        project_path = _resolve_project_path(project)
+        _guard_accidental_package_init(project_path)
         project_path.mkdir(parents=True, exist_ok=True)
         workspace = DiriWorkspace(project_path)
         workspace.ensure_defaults()
@@ -49,11 +53,15 @@ def init(project: Path, intent: Path | None = typer.Option(None, "--intent", "-i
 
 
 @app.command()
-def discover(project: Path, intent: Path | None = typer.Option(None, "--intent", "-i", help="Path to intent.md")) -> None:
+def discover(
+    project: Path = typer.Argument(Path("."), help="Project directory. Defaults to current directory."),
+    intent: Path | None = typer.Option(None, "--intent", "-i", help="Path to intent.md"),
+) -> None:
     """Re-discover developer intent and update workspace models."""
-    workspace = DiriWorkspace(project)
+    project_path = _resolve_project_path(project)
+    workspace = DiriWorkspace(project_path)
     workspace.require()
-    summary = scan_project(project)
+    summary = scan_project(project_path)
     notes = read_intent_notes(intent)
     developer_intent = discover_intent(notes, summary)
     expected = build_expected_result(developer_intent)
@@ -70,20 +78,21 @@ def discover(project: Path, intent: Path | None = typer.Option(None, "--intent",
 
 
 @app.command()
-def score(project: Path) -> None:
+def score(project: Path = typer.Argument(Path("."), help="Project directory. Defaults to current directory.")) -> None:
     """Score a project against its .diri intent and expected result."""
-    report = _score_project(project)
+    report = _score_project(_resolve_project_path(project))
     typer.echo(render_console_report(report))
 
 
 @app.command()
-def plan(project: Path) -> None:
+def plan(project: Path = typer.Argument(Path("."), help="Project directory. Defaults to current directory.")) -> None:
     """Generate a TODO plan from the latest DIRI report."""
-    workspace = DiriWorkspace(project)
+    project_path = _resolve_project_path(project)
+    workspace = DiriWorkspace(project_path)
     workspace.require()
     latest_path = workspace.reports_path / "latest.json"
     if not latest_path.exists():
-        report = _score_project(project)
+        report = _score_project(project_path)
     else:
         report = read_model(latest_path, DiriReport)
     if not report.todo:
@@ -136,6 +145,25 @@ def _score_project(project: Path) -> DiriReport:
     (workspace.reports_path / "latest.md").write_text(render_markdown_report(report), encoding="utf-8")
     append_history(workspace.path, "score", {"raw_score": report.raw_score, "trusted_score": report.trusted_score})
     return report
+
+
+def _resolve_project_path(project: Path | None) -> Path:
+    return (project or Path(".")).resolve()
+
+
+def _guard_accidental_package_init(project_path: Path) -> None:
+    parent_pyproject = project_path.parent / "pyproject.toml"
+    if not (project_path / "__init__.py").exists() or not parent_pyproject.exists():
+        return
+
+    pyproject_text = parent_pyproject.read_text(encoding="utf-8", errors="ignore").lower()
+    if f'name = "{project_path.name.lower()}"' not in pyproject_text:
+        return
+
+    raise DiriError(
+        f"{project_path} looks like the Python package directory, not the project root. "
+        "Run `diri init .` from the repository root instead."
+    )
 
 
 if __name__ == "__main__":
