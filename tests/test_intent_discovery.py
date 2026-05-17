@@ -21,3 +21,23 @@ Must not feel like:
     assert "tasks" in intent.must_have
     assert "boring grid" in intent.must_not_have
     assert "dashboard" not in intent.must_not_have
+
+
+def test_diri_spec_true_goal_is_not_taken_from_visual_example() -> None:
+    notes = """
+# DIRI — Developer Intent Reproduction Index
+
+DIRI is a CLI tool that evaluates how well a codebase reproduces the developer intended result.
+
+Required features:
+- score project
+- generate TODO tasks
+
+Example:
+- premium student planner
+"""
+
+    intent = discover_intent(notes)
+
+    assert intent.true_goal == "Measure how well a codebase reproduces the developer's intended result."
+    assert "" not in intent.must_have

@@ -22,6 +22,15 @@ def _clean_bullet(line: str) -> str:
     return line.strip().lstrip("-*").strip()
 
 
+def _is_meaningful_item(item: str) -> bool:
+    cleaned = item.strip()
+    if not cleaned:
+        return False
+    if cleaned in {"...", "----", "---"}:
+        return False
+    return any(character.isalnum() for character in cleaned)
+
+
 def discover_intent(notes: str, project_summary: ProjectSummary | None = None) -> DeveloperIntent:
     lines = [line.strip() for line in notes.splitlines() if line.strip()]
     prose = [line for line in lines if not line.startswith("#")]
@@ -46,6 +55,8 @@ def discover_intent(notes: str, project_summary: ProjectSummary | None = None) -
             in_must_not = True
         if raw_line.startswith(("-", "*")):
             item = _clean_bullet(raw_line)
+            if not _is_meaningful_item(item):
+                continue
             item_lower = item.lower()
             if in_must_not:
                 must_not_have.append(item)
