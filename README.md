@@ -29,6 +29,34 @@ diri compare before.json after.json
 
 `diri self-score` is not a separate evaluator. It runs the same DIRI scoring flow on the DIRI project itself, using DIRI's own `.diri/intent.json` and `.diri/expected_result.json`.
 
+## Install CLI After Clone
+
+DIRI is designed to be installed as a local developer CLI with `uv tool`.
+
+Windows PowerShell:
+
+```powershell
+git clone https://github.com/sonofthenation/DIRI.git
+cd DIRI
+.\scripts\install-cli.ps1
+diri --help
+```
+
+macOS/Linux:
+
+```bash
+git clone https://github.com/sonofthenation/DIRI.git
+cd DIRI
+sh scripts/install-cli.sh
+diri --help
+```
+
+For development without installing the command globally, use:
+
+```bash
+uv run diri --help
+```
+
 ## MVP Mode
 
 This first version uses deterministic rule-based analysis plus a mock LLM provider interface. It is useful for early project direction, gap discovery, TODO planning, and self-assessment through the same scoring loop, but it should be reviewed by a human.
