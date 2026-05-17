@@ -27,6 +27,8 @@ diri self-score
 diri compare before.json after.json
 ```
 
+`diri self-score` is not a separate evaluator. It runs the same DIRI scoring flow on the DIRI project itself, using DIRI's own `.diri/intent.json` and `.diri/expected_result.json`.
+
 ## MVP Mode
 
-This first version uses deterministic rule-based analysis plus a mock LLM provider interface. It is useful for early project direction, gap discovery, TODO planning, and self-assessment, but it should be reviewed by a human.
+This first version uses deterministic rule-based analysis plus a mock LLM provider interface. It is useful for early project direction, gap discovery, TODO planning, and self-assessment through the same scoring loop, but it should be reviewed by a human.

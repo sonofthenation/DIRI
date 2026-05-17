@@ -1,4 +1,4 @@
-from diri.core.models import DiriReport, InternalDiriReport
+from diri.core.models import DiriReport
 
 
 def render_console_report(report: DiriReport) -> str:
@@ -17,13 +17,4 @@ def render_console_report(report: DiriReport) -> str:
         f"Level: {report.level}\n\n"
         f"Main gaps:\n{gaps}\n\n"
         f"Next actions:\n{next_actions}"
-    )
-
-
-def render_internal_report(report: InternalDiriReport) -> str:
-    weak = ", ".join(report.weak_at) if report.weak_at else "none"
-    return (
-        f"DIRI v{report.diri_version} Internal DIRI: {report.confidence_index}/100\n"
-        f"Trust level: {report.trust_level}\n"
-        f"Weak at: {weak}"
     )

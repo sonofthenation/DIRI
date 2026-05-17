@@ -2,7 +2,7 @@ from pathlib import Path
 
 from diri.constants import DEFAULT_WEIGHTS
 from diri.core.errors import WorkspaceMissingError
-from diri.core.models import DeveloperIntent, ExpectedResultModel, InternalDiriReport
+from diri.core.models import DeveloperIntent, ExpectedResultModel
 from diri.storage.json_store import read_json, read_model, write_json
 
 
@@ -39,15 +39,6 @@ class DiriWorkspace:
         if not path.exists():
             return DEFAULT_WEIGHTS
         return {key: float(value) for key, value in read_json(path).items()}
-
-    def write_confidence(self, confidence: InternalDiriReport) -> None:
-        write_json(self.path / "confidence.json", confidence)
-
-    def read_confidence(self) -> InternalDiriReport | None:
-        path = self.path / "confidence.json"
-        if not path.exists():
-            return None
-        return read_model(path, InternalDiriReport)
 
     def ensure_defaults(self) -> None:
         self.create()

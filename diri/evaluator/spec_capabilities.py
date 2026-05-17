@@ -17,7 +17,6 @@ DIRI_CAPABILITIES = (
     CapabilityCheck("Pydantic data models", ("diri/core/models.py",), ("DeveloperIntent", "ExpectedResultModel", "DiriReport")),
     CapabilityCheck("DIRI score formula", ("diri/core/scoring.py",), ("calculate_raw_score", "calculate_trusted_score")),
     CapabilityCheck("DIRI score levels", ("diri/core/levels.py",), ("get_diri_level",)),
-    CapabilityCheck("Trust levels", ("diri/confidence/trust_levels.py",), ("get_trust_level",)),
     CapabilityCheck("Workspace creation", ("diri/storage/workspace.py",), ("intent.json", "expected_result.json", "reports")),
     CapabilityCheck("JSON storage", ("diri/storage/json_store.py",), ("write_json", "read_json")),
     CapabilityCheck("History tracking", ("diri/storage/history.py",), ("append_history",)),
@@ -35,11 +34,19 @@ DIRI_CAPABILITIES = (
     CapabilityCheck("Markdown report", ("diri/report/markdown_report.py",), ("render_markdown_report", "DIRI Report")),
     CapabilityCheck("JSON report", ("diri/report/json_report.py",), ("write_json_report",)),
     CapabilityCheck("Console report", ("diri/report/console_report.py",), ("render_console_report",)),
-    CapabilityCheck("Internal DIRI score", ("diri/confidence/internal_diri.py",), ("calculate_internal_diri", "module_scores")),
-    CapabilityCheck("Self-score command support", ("diri/confidence/self_score.py",), ("self_score",)),
+    CapabilityCheck("Self-score command reuses project scoring", ("diri/cli.py",), ("def self_score_command", "_score_project")),
     CapabilityCheck("LLM provider abstraction", ("diri/llm/provider.py", "diri/llm/mock_provider.py"), ("complete_json", "MockProvider")),
     CapabilityCheck("Required examples", ("examples/sample_intent.md", "examples/sample_project/README.md"), ("Developer Intent",)),
-    CapabilityCheck("Required test coverage", ("tests/test_scoring.py", "tests/test_levels.py", "tests/test_workspace.py", "tests/test_todo_generator.py", "tests/test_internal_diri.py")),
+    CapabilityCheck(
+        "Required test coverage",
+        (
+            "tests/test_scoring.py",
+            "tests/test_levels.py",
+            "tests/test_workspace.py",
+            "tests/test_todo_generator.py",
+            "tests/test_spec_capabilities.py",
+        ),
+    ),
 )
 
 

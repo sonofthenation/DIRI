@@ -2,13 +2,12 @@ from pathlib import Path
 
 import typer
 
-from diri.confidence.self_score import self_score as calculate_self_score
 from diri.core.errors import DiriError
 from diri.core.models import DiriReport
 from diri.evaluator.project_evaluator import evaluate_project
 from diri.intent.intent_discovery import discover_intent, read_intent_notes
 from diri.intent.preference_memory import update_preference_memory
-from diri.report.console_report import render_console_report, render_internal_report
+from diri.report.console_report import render_console_report
 from diri.report.json_report import write_json_report
 from diri.report.markdown_report import render_markdown_report
 from diri.result_model.builder import build_expected_result
@@ -40,8 +39,6 @@ def init(project: Path, intent: Path | None = typer.Option(None, "--intent", "-i
         expected = build_expected_result(developer_intent)
         workspace.write_intent(developer_intent)
         workspace.write_expected_result(expected)
-        internal = calculate_self_score(Path(__file__).resolve().parents[1])
-        workspace.write_confidence(internal)
         update_preference_memory(workspace.path, developer_intent.preference_signals)
         append_history(workspace.path, "init", {"project": str(project_path), "intent": str(intent) if intent else None})
         typer.echo(f"Initialized DIRI workspace: {workspace.path}")
@@ -99,13 +96,15 @@ def plan(project: Path) -> None:
 
 @app.command("self-score")
 def self_score_command() -> None:
-    """Evaluate DIRI itself and print the DIRI Confidence Index."""
+    """Run DIRI's normal project scoring flow on DIRI itself."""
     project_root = Path(__file__).resolve().parents[1]
-    report = calculate_self_score(project_root)
-    workspace = DiriWorkspace(project_root)
-    workspace.ensure_defaults()
-    workspace.write_confidence(report)
-    typer.echo(render_internal_report(report))
+    try:
+        report = _score_project(project_root)
+    except DiriError as exc:
+        typer.echo(str(exc), err=True)
+        typer.echo("Initialize DIRI itself first, for example: diri init . --intent path/to/DIRI_Technical_Spec.md", err=True)
+        raise typer.Exit(1)
+    typer.echo(render_console_report(report))
 
 
 @app.command()

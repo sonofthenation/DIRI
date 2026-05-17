@@ -68,17 +68,6 @@ class DiriReport(BaseModel):
     todo: list[TodoItem] = Field(default_factory=list)
 
 
-class InternalDiriReport(BaseModel):
-    diri_version: str
-    confidence_index: int
-    trust_level: str
-    module_scores: dict[str, int]
-    best_at: list[str] = Field(default_factory=list)
-    weak_at: list[str] = Field(default_factory=list)
-    recommended_use: list[str] = Field(default_factory=list)
-    not_recommended_use: list[str] = Field(default_factory=list)
-
-
 class ProjectSummary(BaseModel):
     root: str
     files: list[str] = Field(default_factory=list)
