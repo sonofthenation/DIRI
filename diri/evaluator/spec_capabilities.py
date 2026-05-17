@@ -35,6 +35,10 @@ DIRI_CAPABILITIES = (
     CapabilityCheck("JSON report", ("diri/report/json_report.py",), ("write_json_report",)),
     CapabilityCheck("Console report", ("diri/report/console_report.py",), ("render_console_report",)),
     CapabilityCheck("Self-score command reuses project scoring", ("diri/cli.py",), ("def self_score_command", "_score_project")),
+    CapabilityCheck("Operator Bridge commands", ("diri/cli.py",), ("operator-packet", "operator-prompt", "install-operator")),
+    CapabilityCheck("Operator packet builder", ("diri/operator/packet_builder.py",), ("build_operator_packet", "operator_packet.json")),
+    CapabilityCheck("Operator protocol", ("diri/operator/protocol.py",), ("DIRI Operator Protocol", "temporary")),
+    CapabilityCheck("Operator adapters", ("diri/operator/adapters.py",), ("CLAUDE.md", "AGENTS.md", "GEMINI.md")),
     CapabilityCheck("LLM provider abstraction", ("diri/llm/provider.py", "diri/llm/mock_provider.py"), ("complete_json", "MockProvider")),
     CapabilityCheck("Required examples", ("examples/sample_intent.md", "examples/sample_project/README.md"), ("Developer Intent",)),
     CapabilityCheck(

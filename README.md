@@ -25,6 +25,9 @@ diri score .
 diri plan .
 diri self-score
 diri compare before.json after.json
+diri operator-packet
+diri operator-prompt
+diri install-operator all
 ```
 
 From inside a project directory, the project argument defaults to the current directory:
@@ -64,6 +67,36 @@ For development without installing the command globally, use:
 ```bash
 uv run diri --help
 ```
+
+## DIRI Operator Bridge
+
+DIRI can prepare local AI coding agents to speak in DIRI-mode for evaluation requests.
+
+```bash
+diri operator-packet
+diri operator-prompt
+diri install-operator all
+```
+
+`diri operator-packet` writes:
+
+```text
+.diri/operator/operator_packet.json
+.diri/operator/DIRI_OPERATOR.md
+```
+
+`diri install-operator all` installs thin bridge files for common agents:
+
+```text
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+.cursor/rules/diri.mdc
+.windsurf/rules/diri.md
+.github/copilot-instructions.md
+```
+
+These files do not turn an AI assistant into DIRI permanently. They instruct the assistant to enter temporary DIRI-mode only when the user asks for a DIRI evaluation, use `.diri/operator/operator_packet.json` as evidence, speak as DIRI for that response, and then return to normal assistant mode.
 
 ## MVP Mode
 

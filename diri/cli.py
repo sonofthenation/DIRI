@@ -7,6 +7,9 @@ from diri.core.models import DiriReport
 from diri.evaluator.project_evaluator import evaluate_project
 from diri.intent.intent_discovery import discover_intent, read_intent_notes
 from diri.intent.preference_memory import update_preference_memory
+from diri.operator.adapters import SUPPORTED_ADAPTERS, install_adapters
+from diri.operator.packet_builder import write_operator_packet
+from diri.operator.protocol import render_operator_prompt, write_operator_protocol
 from diri.report.console_report import render_console_report
 from diri.report.json_report import write_json_report
 from diri.report.markdown_report import render_markdown_report
@@ -127,6 +130,72 @@ def compare(before: Path, after: Path) -> None:
     for key, before_metric in before_report.metric_scores.items():
         after_metric = after_report.metric_scores[key]
         typer.echo(f"- {after_metric.name}: {after_metric.score - before_metric.score:+}")
+
+
+@app.command("operator-packet")
+def operator_packet(
+    project: Path = typer.Argument(Path("."), help="Project directory. Defaults to current directory."),
+) -> None:
+    """Write .diri/operator/operator_packet.json for LLM operators."""
+    project_path = _resolve_project_path(project)
+    workspace = DiriWorkspace(project_path)
+    workspace.require()
+    if not (workspace.reports_path / "latest.json").exists():
+        _score_project(project_path)
+    packet_path = write_operator_packet(project_path)
+    protocol_path = write_operator_protocol(project_path)
+    append_history(workspace.path, "operator-packet", {"packet": str(packet_path), "protocol": str(protocol_path)})
+    typer.echo(f"Wrote operator packet: {packet_path}")
+    typer.echo(f"Wrote operator protocol: {protocol_path}")
+
+
+@app.command("operator-prompt")
+def operator_prompt(
+    project: Path = typer.Argument(Path("."), help="Project directory. Defaults to current directory."),
+) -> None:
+    """Print a copy-paste DIRI prompt for any LLM operator."""
+    project_path = _resolve_project_path(project)
+    workspace = DiriWorkspace(project_path)
+    workspace.require()
+    if not (workspace.reports_path / "latest.json").exists():
+        _score_project(project_path)
+    write_operator_packet(project_path)
+    write_operator_protocol(project_path)
+    typer.echo(render_operator_prompt(project_path))
+
+
+@app.command("install-operator")
+def install_operator(
+    target: str = typer.Argument("all", help=f"Adapter to install: {', '.join(SUPPORTED_ADAPTERS)}."),
+    project: Path = typer.Option(Path("."), "--project", "-p", help="Project directory. Defaults to current directory."),
+) -> None:
+    """Install DIRI Operator Bridge files for local AI coding agents."""
+    project_path = _resolve_project_path(project)
+    workspace = DiriWorkspace(project_path)
+    workspace.require()
+    if not (workspace.reports_path / "latest.json").exists():
+        _score_project(project_path)
+    packet_path = write_operator_packet(project_path)
+    protocol_path = write_operator_protocol(project_path)
+    try:
+        adapter_paths = install_adapters(project_path, target)
+    except ValueError as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(1)
+    append_history(
+        workspace.path,
+        "install-operator",
+        {
+            "target": target,
+            "packet": str(packet_path),
+            "protocol": str(protocol_path),
+            "adapters": [str(path) for path in adapter_paths],
+        },
+    )
+    typer.echo(f"Wrote operator packet: {packet_path}")
+    typer.echo(f"Wrote operator protocol: {protocol_path}")
+    for path in adapter_paths:
+        typer.echo(f"Installed adapter: {path}")
 
 
 def _score_project(project: Path) -> DiriReport:
