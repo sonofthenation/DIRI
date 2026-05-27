@@ -16,6 +16,14 @@ How well does this code reproduce the result the developer actually wanted?
 
 It does not reward clean architecture, test count, or short functions unless they help reproduce the expected result.
 
+## DIRI for Vibecoders
+
+You say what you want. The AI builds it. DIRI tells you how close it landed — and what's missing.
+
+Vibe coding moved the bottleneck from "can you write the code" to "does the result match what you meant". DIRI is the instrument for that gap: a fidelity index between your intent and the result, so you can verify an agent's output without reading every line.
+
+See [`docs/VISION.md`](docs/VISION.md) for the full vision, the vibecoder loop, and the roadmap.
+
 ## Commands
 
 ```bash
@@ -98,6 +106,6 @@ GEMINI.md
 
 These files do not turn an AI assistant into DIRI permanently. They instruct the assistant to enter temporary DIRI-mode only when the user asks for a DIRI evaluation, use `.diri/operator/operator_packet.json` as evidence, speak as DIRI for that response, and then return to normal assistant mode.
 
-## MVP Mode
+## Stage 1: Transparent Baseline
 
-This first version uses deterministic rule-based analysis plus a mock LLM provider interface. It is useful for early project direction, gap discovery, TODO planning, and self-assessment through the same scoring loop, but it should be reviewed by a human.
+This is Stage 1 of the [roadmap](docs/VISION.md#roadmap-to-the-bar): deterministic rule-based analysis plus a mock LLM provider interface. It is fully inspectable and useful for early project direction, gap discovery, TODO planning, and self-assessment through the same scoring loop, but it should be reviewed by a human. A real intent-understanding engine (a working `LLMProvider`) is the next stage.
