@@ -20,6 +20,8 @@ class LLMUnavailableError(RuntimeError):
 class AnthropicProvider(LLMProvider):
     """LLMProvider backed by the Claude API via the official anthropic SDK."""
 
+    name = "Claude (API)"
+
     def __init__(self, model: str = DEFAULT_MODEL, api_key: str | None = None, max_tokens: int = 4096):
         self.model = model
         self.api_key = api_key

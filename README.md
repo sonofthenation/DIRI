@@ -108,17 +108,28 @@ These files do not turn an AI assistant into DIRI permanently. They instruct the
 
 ## Intent Understanding Engine
 
-DIRI discovers developer intent in two modes (see the [roadmap](docs/VISION.md#roadmap-to-the-bar)):
+DIRI discovers developer intent through whichever backend is available, in this order (see the [roadmap](docs/VISION.md#roadmap-to-the-bar)):
 
-- **Heuristic (default):** deterministic rule-based analysis. Fully inspectable, zero setup, runs with no API key.
-- **Claude-backed:** semantic intent understanding via the Claude API. Used automatically for `diri init` / `diri discover` when the `anthropic` SDK is installed and `ANTHROPIC_API_KEY` is set; otherwise DIRI silently falls back to the heuristic engine.
+1. **Claude API** — semantic understanding via the `anthropic` SDK. Used when `ANTHROPIC_API_KEY` is set and `pip install 'diri[llm]'` was run.
+2. **Claude Code (local CLI)** — uses your **already-installed Claude Code** and its existing subscription login by shelling out to the official `claude` binary in headless mode. **No API key required.** Used automatically when no API key is set but `claude` is on your `PATH`.
+3. **Heuristic** — deterministic rule-based analysis. Fully inspectable, zero setup. The fallback whenever neither Claude backend is available or a call fails.
+
+`diri init` / `diri discover` print which engine ran, e.g. `Intent engine: Claude Code (local CLI)`.
 
 ```bash
-pip install 'diri[llm]'        # install the anthropic SDK
-export ANTHROPIC_API_KEY=...   # enable the Claude-backed engine
-diri init . --intent intent.md # prints "Intent engine: Claude" or "heuristic"
+# Option A — reuse your installed Claude Code (no API key)
+diri init . --intent intent.md
+
+# Option B — Claude API
+pip install 'diri[llm]'
+export ANTHROPIC_API_KEY=...
+diri init . --intent intent.md
 ```
 
-Environment overrides: `DIRI_LLM_MODEL` (default `claude-opus-4-7`), `DIRI_LLM_DISABLE=1` to force heuristic mode.
+Environment overrides:
+- `DIRI_LLM_BACKEND` — force a backend: `api`, `claude-code`, or `off`.
+- `DIRI_LLM_MODEL` — model id/alias (default `claude-opus-4-7`).
+- `DIRI_CLAUDE_BINARY` — path/name of the Claude Code binary (default `claude`).
+- `DIRI_LLM_DISABLE=1` — force heuristic mode.
 
 Scoring itself remains rule-based for now and should be reviewed by a human.

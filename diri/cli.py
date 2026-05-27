@@ -51,7 +51,7 @@ def init(
         update_preference_memory(workspace.path, developer_intent.preference_signals)
         append_history(workspace.path, "init", {"project": str(project_path), "intent": str(intent) if intent else None})
         typer.echo(f"Initialized DIRI workspace: {workspace.path}")
-        typer.echo(f"Intent engine: {'Claude' if provider else 'heuristic'}")
+        typer.echo(f"Intent engine: {provider.name if provider else 'heuristic'}")
         typer.echo(f"Intent confidence: {int(developer_intent.confidence)}/100")
     except DiriError as exc:
         typer.echo(str(exc), err=True)
@@ -77,7 +77,7 @@ def discover(
     write_json(workspace.path / "project_summary.json", summary)
     update_preference_memory(workspace.path, developer_intent.preference_signals)
     append_history(workspace.path, "discover", {"confidence": int(developer_intent.confidence)})
-    typer.echo(f"Intent engine: {'Claude' if provider else 'heuristic'}")
+    typer.echo(f"Intent engine: {provider.name if provider else 'heuristic'}")
     typer.echo(f"Intent confidence: {int(developer_intent.confidence)}/100")
     if developer_intent.unclear_points:
         typer.echo("Unclear points:")
