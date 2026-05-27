@@ -3,6 +3,7 @@ from pathlib import Path
 from diri.core.models import DeveloperIntent, ProjectSummary
 from diri.intent.hidden_intent import infer_hidden_intent
 from diri.intent.intent_confidence import estimate_intent_confidence
+from diri.llm.provider import LLMProvider
 
 VISUAL_WORDS = {"feel", "visual", "interface", "ui", "ux", "design", "premium", "polished", "layout", "notebook"}
 EMOTIONAL_WORDS = {"calm", "academic", "premium", "polished", "rich", "boring", "cheap"}
@@ -31,7 +32,54 @@ def _is_meaningful_item(item: str) -> bool:
     return any(character.isalnum() for character in cleaned)
 
 
-def discover_intent(notes: str, project_summary: ProjectSummary | None = None) -> DeveloperIntent:
+def discover_intent(
+    notes: str,
+    project_summary: ProjectSummary | None = None,
+    provider: LLMProvider | None = None,
+) -> DeveloperIntent:
+    if provider is not None:
+        llm_intent = _discover_intent_llm(notes, project_summary, provider)
+        if llm_intent is not None:
+            return llm_intent
+    return _discover_intent_heuristic(notes, project_summary)
+
+
+def _build_intent_prompt(notes: str, project_summary: ProjectSummary | None) -> str:
+    sections = ["Developer intent notes:", notes.strip() or "(none provided)"]
+    if project_summary is not None:
+        languages = ", ".join(sorted(project_summary.languages)) or "unknown"
+        important = "\n".join(f"- {path}" for path in project_summary.important_files[:20])
+        sections.append("\nProject context:")
+        sections.append(f"Languages: {languages}")
+        sections.append(f"Total files: {project_summary.total_files}")
+        if important:
+            sections.append("Important files:\n" + important)
+    return "\n".join(sections)
+
+
+def _discover_intent_llm(
+    notes: str,
+    project_summary: ProjectSummary | None,
+    provider: LLMProvider,
+) -> DeveloperIntent | None:
+    try:
+        data = provider.complete_json(_build_intent_prompt(notes, project_summary), "developer_intent")
+    except Exception:
+        return None
+    if not data:
+        return None
+    try:
+        intent = DeveloperIntent.model_validate(data)
+    except Exception:
+        return None
+    if not intent.true_goal:
+        intent.true_goal = infer_hidden_intent(intent)
+    if not intent.confidence:
+        intent.confidence = estimate_intent_confidence(intent)
+    return intent
+
+
+def _discover_intent_heuristic(notes: str, project_summary: ProjectSummary | None = None) -> DeveloperIntent:
     lines = [line.strip() for line in notes.splitlines() if line.strip()]
     prose = [line for line in lines if not line.startswith("#")]
     bullets = [_clean_bullet(line) for line in lines if line.startswith(("-", "*"))]

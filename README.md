@@ -106,6 +106,19 @@ GEMINI.md
 
 These files do not turn an AI assistant into DIRI permanently. They instruct the assistant to enter temporary DIRI-mode only when the user asks for a DIRI evaluation, use `.diri/operator/operator_packet.json` as evidence, speak as DIRI for that response, and then return to normal assistant mode.
 
-## Stage 1: Transparent Baseline
+## Intent Understanding Engine
 
-This is Stage 1 of the [roadmap](docs/VISION.md#roadmap-to-the-bar): deterministic rule-based analysis plus a mock LLM provider interface. It is fully inspectable and useful for early project direction, gap discovery, TODO planning, and self-assessment through the same scoring loop, but it should be reviewed by a human. A real intent-understanding engine (a working `LLMProvider`) is the next stage.
+DIRI discovers developer intent in two modes (see the [roadmap](docs/VISION.md#roadmap-to-the-bar)):
+
+- **Heuristic (default):** deterministic rule-based analysis. Fully inspectable, zero setup, runs with no API key.
+- **Claude-backed:** semantic intent understanding via the Claude API. Used automatically for `diri init` / `diri discover` when the `anthropic` SDK is installed and `ANTHROPIC_API_KEY` is set; otherwise DIRI silently falls back to the heuristic engine.
+
+```bash
+pip install 'diri[llm]'        # install the anthropic SDK
+export ANTHROPIC_API_KEY=...   # enable the Claude-backed engine
+diri init . --intent intent.md # prints "Intent engine: Claude" or "heuristic"
+```
+
+Environment overrides: `DIRI_LLM_MODEL` (default `claude-opus-4-7`), `DIRI_LLM_DISABLE=1` to force heuristic mode.
+
+Scoring itself remains rule-based for now and should be reviewed by a human.

@@ -7,6 +7,7 @@ from diri.core.models import DiriReport
 from diri.evaluator.project_evaluator import evaluate_project
 from diri.intent.intent_discovery import discover_intent, read_intent_notes
 from diri.intent.preference_memory import update_preference_memory
+from diri.llm.factory import get_intent_provider
 from diri.operator.adapters import SUPPORTED_ADAPTERS, install_adapters
 from diri.operator.packet_builder import write_operator_packet
 from diri.operator.protocol import render_operator_prompt, write_operator_protocol
@@ -42,13 +43,15 @@ def init(
         summary = scan_project(project_path)
         write_json(workspace.path / "project_summary.json", summary)
         notes = read_intent_notes(intent)
-        developer_intent = discover_intent(notes, summary)
+        provider = get_intent_provider()
+        developer_intent = discover_intent(notes, summary, provider)
         expected = build_expected_result(developer_intent)
         workspace.write_intent(developer_intent)
         workspace.write_expected_result(expected)
         update_preference_memory(workspace.path, developer_intent.preference_signals)
         append_history(workspace.path, "init", {"project": str(project_path), "intent": str(intent) if intent else None})
         typer.echo(f"Initialized DIRI workspace: {workspace.path}")
+        typer.echo(f"Intent engine: {'Claude' if provider else 'heuristic'}")
         typer.echo(f"Intent confidence: {int(developer_intent.confidence)}/100")
     except DiriError as exc:
         typer.echo(str(exc), err=True)
@@ -66,13 +69,15 @@ def discover(
     workspace.require()
     summary = scan_project(project_path)
     notes = read_intent_notes(intent)
-    developer_intent = discover_intent(notes, summary)
+    provider = get_intent_provider()
+    developer_intent = discover_intent(notes, summary, provider)
     expected = build_expected_result(developer_intent)
     workspace.write_intent(developer_intent)
     workspace.write_expected_result(expected)
     write_json(workspace.path / "project_summary.json", summary)
     update_preference_memory(workspace.path, developer_intent.preference_signals)
     append_history(workspace.path, "discover", {"confidence": int(developer_intent.confidence)})
+    typer.echo(f"Intent engine: {'Claude' if provider else 'heuristic'}")
     typer.echo(f"Intent confidence: {int(developer_intent.confidence)}/100")
     if developer_intent.unclear_points:
         typer.echo("Unclear points:")
