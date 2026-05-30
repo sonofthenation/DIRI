@@ -64,3 +64,29 @@ def test_provider_raises_when_binary_missing(tmp_path, monkeypatch) -> None:
     provider = ClaudeCodeProvider()
     with pytest.raises(ClaudeCodeUnavailableError):
         provider.complete_json("notes", "developer_intent")
+
+
+def test_provider_command_uses_verified_hardening_flags(tmp_path, monkeypatch) -> None:
+    """Regression guard: the CLI 2.1.152 has no --max-turns flag and would error on it.
+
+    Verifies the built argv: --max-turns is absent, the verified hardening flags are
+    present, and variadic --tools "" is the last flag (so it cannot eat anything).
+    """
+    args_log = tmp_path / "args.log"
+    envelope = '{"type":"result","is_error":false,"result":"{}"}'
+    body = (
+        'cat >/dev/null\n'
+        f'printf "%s\\n" "$@" >>"{args_log}"\n'
+        f"printf '%s' '{envelope}'\n"
+    )
+    _write_fake_claude(tmp_path, body)
+    monkeypatch.setenv("PATH", str(tmp_path) + os.pathsep + os.environ["PATH"])
+
+    ClaudeCodeProvider().complete_json("notes", "developer_intent")
+
+    captured = args_log.read_text().splitlines()
+    assert "--max-turns" not in captured
+    assert "--strict-mcp-config" in captured
+    assert "--no-session-persistence" in captured
+    assert "--tools" in captured
+    assert captured[-2:] == ["--tools", ""]  # variadic flag last, captures only ""

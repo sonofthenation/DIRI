@@ -37,11 +37,26 @@ def discover_intent(
     project_summary: ProjectSummary | None = None,
     provider: LLMProvider | None = None,
 ) -> DeveloperIntent:
-    if provider is not None:
-        llm_intent = _discover_intent_llm(notes, project_summary, provider)
-        if llm_intent is not None:
-            return llm_intent
-    return _discover_intent_heuristic(notes, project_summary)
+    return discover_intent_reported(notes, project_summary, provider)[0]
+
+
+def discover_intent_reported(
+    notes: str,
+    project_summary: ProjectSummary | None = None,
+    provider: LLMProvider | None = None,
+) -> tuple[DeveloperIntent, str]:
+    """Discover developer intent and report which engine actually produced it.
+
+    Returns (intent, engine_label). The label is the provider's name on success,
+    "heuristic (fallback from <name>)" when a configured LLM provider was tried
+    but failed, or plain "heuristic" when no provider was given.
+    """
+    if provider is None:
+        return _discover_intent_heuristic(notes, project_summary), "heuristic"
+    llm_intent = _discover_intent_llm(notes, project_summary, provider)
+    if llm_intent is not None:
+        return llm_intent, provider.name
+    return _discover_intent_heuristic(notes, project_summary), f"heuristic (fallback from {provider.name})"
 
 
 def _build_intent_prompt(notes: str, project_summary: ProjectSummary | None) -> str:

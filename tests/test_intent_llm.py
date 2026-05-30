@@ -1,4 +1,4 @@
-from diri.intent.intent_discovery import discover_intent
+from diri.intent.intent_discovery import discover_intent, discover_intent_reported
 from diri.llm.mock_provider import MockProvider
 from diri.llm.provider import LLMProvider
 
@@ -59,3 +59,19 @@ def test_empty_llm_response_falls_back_to_heuristic() -> None:
     intent = discover_intent("Required features:\n- tasks", None, provider)
 
     assert "tasks" in intent.must_have
+
+
+def test_reported_label_no_provider_is_heuristic() -> None:
+    _, engine = discover_intent_reported("notes", None, None)
+    assert engine == "heuristic"
+
+
+def test_reported_label_on_success_is_provider_name() -> None:
+    provider = MockProvider({"developer_intent": {"surface_goal": "x", "confidence": 50}})
+    _, engine = discover_intent_reported("notes", None, provider)
+    assert engine == provider.name
+
+
+def test_reported_label_on_failure_shows_fallback() -> None:
+    _, engine = discover_intent_reported("notes", None, RaisingProvider())
+    assert engine.startswith("heuristic (fallback from ")

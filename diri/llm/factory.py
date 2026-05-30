@@ -22,7 +22,15 @@ def _claude_code_provider() -> LLMProvider | None:
         return None
     from diri.llm.claude_code_provider import DEFAULT_MODEL, ClaudeCodeProvider
 
-    return ClaudeCodeProvider(model=os.environ.get("DIRI_LLM_MODEL", DEFAULT_MODEL), binary=binary)
+    try:
+        timeout = float(os.environ.get("DIRI_LLM_TIMEOUT", "120"))
+    except ValueError:
+        timeout = 120.0
+    return ClaudeCodeProvider(
+        model=os.environ.get("DIRI_LLM_MODEL", DEFAULT_MODEL),
+        binary=binary,
+        timeout=timeout,
+    )
 
 
 def get_intent_provider() -> LLMProvider | None:

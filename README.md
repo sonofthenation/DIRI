@@ -130,6 +130,9 @@ Environment overrides:
 - `DIRI_LLM_BACKEND` — force a backend: `api`, `claude-code`, or `off`.
 - `DIRI_LLM_MODEL` — model id/alias (default `claude-opus-4-7`).
 - `DIRI_CLAUDE_BINARY` — path/name of the Claude Code binary (default `claude`).
+- `DIRI_LLM_TIMEOUT` — seconds before a Claude Code call is killed (default `120`).
 - `DIRI_LLM_DISABLE=1` — force heuristic mode.
+
+When a configured Claude backend fails (e.g. the local CLI is not logged in), DIRI silently falls back to the heuristic engine and reports it: `Intent engine: heuristic (fallback from Claude Code (local CLI))`.
 
 Scoring itself remains rule-based for now and should be reviewed by a human.

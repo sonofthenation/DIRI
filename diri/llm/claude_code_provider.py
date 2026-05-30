@@ -67,6 +67,17 @@ class ClaudeCodeProvider(LLMProvider):
                 f"The '{self.binary}' CLI was not found on PATH. Install Claude Code to use this engine."
             )
 
+        # Hardened one-shot invocation. Notes on flags:
+        # - `--tools ""` disables all built-in tools (intent extraction needs none),
+        #   which keeps the call to a single generation. It is variadic, so it must
+        #   be placed LAST in the arg list — otherwise it would greedily consume
+        #   trailing arguments. We send the prompt via stdin (no positional arg).
+        # - `--strict-mcp-config` together with no `--mcp-config` ignores all MCP
+        #   servers configured for the project/user, so a misconfigured MCP can't
+        #   hang or interfere with this throwaway call.
+        # - `--no-session-persistence` skips writing session files for a one-shot.
+        # - `--bare` is intentionally NOT used: it forces ANTHROPIC_API_KEY-only auth
+        #   and never reads the OAuth/keychain login that this engine relies on.
         cmd = [
             binary,
             "-p",
@@ -76,8 +87,10 @@ class ClaudeCodeProvider(LLMProvider):
             self.model,
             "--append-system-prompt",
             system_prompt + _JSON_ONLY_INSTRUCTION,
-            "--max-turns",
-            "1",
+            "--strict-mcp-config",
+            "--no-session-persistence",
+            "--tools",
+            "",
         ]
 
         # Force the CLI to use its own stored login: a stray ANTHROPIC_API_KEY
