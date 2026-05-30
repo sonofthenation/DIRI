@@ -1,4 +1,6 @@
-from diri.constants import METRIC_LABELS
+from pathlib import Path
+
+from diri.constants import DEFAULT_WORKSPACE_DIR, METRIC_LABELS
 from diri.core.models import DeveloperIntent, ExpectedResultModel, MetricScore, ProjectSummary
 from diri.evaluator.evidence_collector import find_evidence_for_terms
 from diri.evaluator.intent_alignment import evaluate_intent_alignment
@@ -36,7 +38,10 @@ def evaluate_metrics(intent: DeveloperIntent, expected: ExpectedResultModel, pro
     criteria_score, criteria_evidence = _coverage_score(expected.acceptance_criteria, project)
 
     has_workspace = ".diri/intent.json" in project.files and ".diri/expected_result.json" in project.files
-    has_reports = any(path.startswith(".diri/reports/") for path in project.files)
+    # Report artifacts live in .diri/reports/, which the scanner deliberately
+    # excludes from the project map so the evaluator never feeds on its own
+    # output. Detect persisted reporting behavior directly on disk instead.
+    has_reports = _has_persisted_reports(project.root)
     has_cli = any(path.endswith("cli.py") or "cli" in path.lower() for path in project.files)
     has_tests = any(path.startswith("tests/") for path in project.files)
     has_docs = any(path.lower().endswith("readme.md") for path in project.files)
@@ -87,6 +92,11 @@ def evaluate_metrics(intent: DeveloperIntent, expected: ExpectedResultModel, pro
         key: MetricScore(name=METRIC_LABELS[key], score=int(score), reasoning=reasoning, evidence=evidence)
         for key, (score, reasoning, evidence) in values.items()
     }
+
+
+def _has_persisted_reports(project_root: str) -> bool:
+    reports_dir = Path(project_root) / DEFAULT_WORKSPACE_DIR / "reports"
+    return reports_dir.is_dir() and any(reports_dir.iterdir())
 
 
 def _functional_reasoning(score: int, missing_capabilities: list[str]) -> str:
