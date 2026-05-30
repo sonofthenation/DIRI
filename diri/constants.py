@@ -1,5 +1,11 @@
 DEFAULT_WORKSPACE_DIR = ".diri"
 
+# Core DIRI principle: DIRI never claims perfect intent reproduction.
+# No score, trusted score, metric, or confidence value may ever reach 100.
+# Full reproduction of developer intent is treated as fundamentally
+# unprovable, so the index is hard-capped below 100 everywhere.
+MAX_SCORE = 99
+
 DEFAULT_WEIGHTS = {
     "intent_match": 0.25,
     "functional_reproduction": 0.20,

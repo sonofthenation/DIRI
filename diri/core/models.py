@@ -1,6 +1,8 @@
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+from diri.constants import MAX_SCORE
 
 
 class DeveloperIntent(BaseModel):
@@ -17,6 +19,12 @@ class DeveloperIntent(BaseModel):
     preference_signals: list[str] = Field(default_factory=list)
     unclear_points: list[str] = Field(default_factory=list)
     confidence: float = 0.0
+
+    @field_validator("confidence")
+    @classmethod
+    def _never_perfect_confidence(cls, value: float) -> float:
+        # DIRI never reports 100% — confidence is hard-capped below 100.
+        return max(0.0, min(float(MAX_SCORE), value))
 
 
 class ExpectedResultModel(BaseModel):
@@ -35,6 +43,12 @@ class MetricScore(BaseModel):
     score: int
     reasoning: str
     evidence: list[str] = Field(default_factory=list)
+
+    @field_validator("score")
+    @classmethod
+    def _never_perfect_score(cls, value: int) -> int:
+        # DIRI never reports a perfect metric — capped below 100 at the root.
+        return max(0, min(MAX_SCORE, value))
 
 
 class Gap(BaseModel):
@@ -62,6 +76,12 @@ class DiriReport(BaseModel):
     confidence: int
     level: str
     metric_scores: dict[str, MetricScore]
+
+    @field_validator("raw_score", "trusted_score", "confidence")
+    @classmethod
+    def _never_perfect(cls, value: int) -> int:
+        # DIRI never reports 100% — every headline number is capped below 100.
+        return max(0, min(MAX_SCORE, value))
     gaps: list[Gap] = Field(default_factory=list)
     strengths: list[str] = Field(default_factory=list)
     weaknesses: list[str] = Field(default_factory=list)
