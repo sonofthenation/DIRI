@@ -18,6 +18,7 @@ def build_adapters(target: str = "all") -> list[OperatorAdapter]:
         supported = ", ".join(SUPPORTED_ADAPTERS)
         raise ValueError(f"Unsupported operator adapter '{target}'. Supported adapters: {supported}.")
 
+    names: tuple[str, ...]
     if normalized == "all":
         names = ("codex", "claude", "cursor", "windsurf", "gemini", "copilot")
     else:
