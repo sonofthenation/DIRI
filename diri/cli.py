@@ -1,3 +1,4 @@
+import functools
 from pathlib import Path
 
 import typer
@@ -22,40 +23,52 @@ from diri.storage.workspace import DiriWorkspace
 app = typer.Typer(help="DIRI — Developer Intent Reproduction Index")
 
 
+def _handle_errors(func):
+    """Turn user-facing DiriError into a clean message + exit code instead of a traceback."""
+
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except DiriError as exc:
+            typer.echo(str(exc), err=True)
+            raise typer.Exit(1)
+
+    return wrapper
+
+
 @app.callback()
 def main() -> None:
     """Evaluate how well code reproduces developer intent."""
 
 
 @app.command()
+@_handle_errors
 def init(
     project: Path = typer.Argument(Path("."), help="Project directory to initialize. Defaults to current directory."),
     intent: Path | None = typer.Option(None, "--intent", "-i", help="Path to intent.md"),
 ) -> None:
     """Create a .diri workspace and initial intent/result models."""
-    try:
-        project_path = _resolve_project_path(project)
-        _guard_accidental_package_init(project_path)
-        project_path.mkdir(parents=True, exist_ok=True)
-        workspace = DiriWorkspace(project_path)
-        workspace.ensure_defaults()
-        summary = scan_project(project_path)
-        write_json(workspace.path / "project_summary.json", summary)
-        notes = read_intent_notes(intent)
-        developer_intent = discover_intent(notes, summary)
-        expected = build_expected_result(developer_intent)
-        workspace.write_intent(developer_intent)
-        workspace.write_expected_result(expected)
-        update_preference_memory(workspace.path, developer_intent.preference_signals)
-        append_history(workspace.path, "init", {"project": str(project_path), "intent": str(intent) if intent else None})
-        typer.echo(f"Initialized DIRI workspace: {workspace.path}")
-        typer.echo(f"Intent confidence: {int(developer_intent.confidence)}/100")
-    except DiriError as exc:
-        typer.echo(str(exc), err=True)
-        raise typer.Exit(1)
+    project_path = _resolve_project_path(project)
+    _guard_accidental_package_init(project_path)
+    project_path.mkdir(parents=True, exist_ok=True)
+    workspace = DiriWorkspace(project_path)
+    workspace.ensure_defaults()
+    summary = scan_project(project_path)
+    write_json(workspace.path / "project_summary.json", summary)
+    notes = read_intent_notes(intent)
+    developer_intent = discover_intent(notes, summary)
+    expected = build_expected_result(developer_intent)
+    workspace.write_intent(developer_intent)
+    workspace.write_expected_result(expected)
+    update_preference_memory(workspace.path, developer_intent.preference_signals)
+    append_history(workspace.path, "init", {"project": str(project_path), "intent": str(intent) if intent else None})
+    typer.echo(f"Initialized DIRI workspace: {workspace.path}")
+    typer.echo(f"Intent confidence: {int(developer_intent.confidence)}/100")
 
 
 @app.command()
+@_handle_errors
 def discover(
     project: Path = typer.Argument(Path("."), help="Project directory. Defaults to current directory."),
     intent: Path | None = typer.Option(None, "--intent", "-i", help="Path to intent.md"),
@@ -81,6 +94,7 @@ def discover(
 
 
 @app.command()
+@_handle_errors
 def score(project: Path = typer.Argument(Path("."), help="Project directory. Defaults to current directory.")) -> None:
     """Score a project against its .diri intent and expected result."""
     report = _score_project(_resolve_project_path(project))
@@ -88,6 +102,7 @@ def score(project: Path = typer.Argument(Path("."), help="Project directory. Def
 
 
 @app.command()
+@_handle_errors
 def plan(project: Path = typer.Argument(Path("."), help="Project directory. Defaults to current directory.")) -> None:
     """Generate a TODO plan from the latest DIRI report."""
     project_path = _resolve_project_path(project)
@@ -120,19 +135,27 @@ def self_score_command() -> None:
 
 
 @app.command()
+@_handle_errors
 def compare(before: Path, after: Path) -> None:
     """Compare two JSON DIRI reports."""
-    before_report = read_model(before, DiriReport)
-    after_report = read_model(after, DiriReport)
+    before_report = _read_report(before)
+    after_report = _read_report(after)
     typer.echo(f"Raw score delta: {after_report.raw_score - before_report.raw_score:+}")
     typer.echo(f"Trusted score delta: {after_report.trusted_score - before_report.trusted_score:+}")
     typer.echo("Metric deltas:")
     for key, before_metric in before_report.metric_scores.items():
-        after_metric = after_report.metric_scores[key]
+        after_metric = after_report.metric_scores.get(key)
+        if after_metric is None:
+            typer.echo(f"- {before_metric.name}: only in before report")
+            continue
         typer.echo(f"- {after_metric.name}: {after_metric.score - before_metric.score:+}")
+    for key, after_metric in after_report.metric_scores.items():
+        if key not in before_report.metric_scores:
+            typer.echo(f"- {after_metric.name}: only in after report")
 
 
 @app.command("operator-packet")
+@_handle_errors
 def operator_packet(
     project: Path = typer.Argument(Path("."), help="Project directory. Defaults to current directory."),
 ) -> None:
@@ -150,6 +173,7 @@ def operator_packet(
 
 
 @app.command("operator-prompt")
+@_handle_errors
 def operator_prompt(
     project: Path = typer.Argument(Path("."), help="Project directory. Defaults to current directory."),
 ) -> None:
@@ -165,6 +189,7 @@ def operator_prompt(
 
 
 @app.command("install-operator")
+@_handle_errors
 def install_operator(
     target: str = typer.Argument("all", help=f"Adapter to install: {', '.join(SUPPORTED_ADAPTERS)}."),
     project: Path = typer.Option(Path("."), "--project", "-p", help="Project directory. Defaults to current directory."),
@@ -214,6 +239,15 @@ def _score_project(project: Path) -> DiriReport:
     (workspace.reports_path / "latest.md").write_text(render_markdown_report(report), encoding="utf-8")
     append_history(workspace.path, "score", {"raw_score": report.raw_score, "trusted_score": report.trusted_score})
     return report
+
+
+def _read_report(path: Path) -> DiriReport:
+    if not path.exists():
+        raise DiriError(f"Report not found: {path}")
+    try:
+        return read_model(path, DiriReport)
+    except (ValueError, OSError) as exc:
+        raise DiriError(f"Could not read DIRI report at {path}: {exc}")
 
 
 def _resolve_project_path(project: Path | None) -> Path:

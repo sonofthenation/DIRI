@@ -34,7 +34,6 @@ def _is_meaningful_item(item: str) -> bool:
 def discover_intent(notes: str, project_summary: ProjectSummary | None = None) -> DeveloperIntent:
     lines = [line.strip() for line in notes.splitlines() if line.strip()]
     prose = [line for line in lines if not line.startswith("#")]
-    bullets = [_clean_bullet(line) for line in lines if line.startswith(("-", "*"))]
 
     surface_goal = next((line for line in prose if not line.startswith(("-", "*"))), "")
     functional_target: list[str] = []

@@ -1,3 +1,5 @@
+import re
+
 from diri.constants import METRIC_LABELS
 from diri.core.models import DeveloperIntent, ExpectedResultModel, MetricScore, ProjectSummary
 from diri.evaluator.evidence_collector import find_evidence_for_terms
@@ -5,17 +7,23 @@ from diri.evaluator.intent_alignment import evaluate_intent_alignment
 from diri.evaluator.report_experience import evaluate_report_experience
 from diri.evaluator.spec_capabilities import evaluate_diri_capabilities
 
+_TOKEN_PATTERN = re.compile(r"[a-z0-9]+")
+
+
+def _tokenize(text: str) -> set[str]:
+    return set(_TOKEN_PATTERN.findall(text.lower()))
+
 
 def _coverage_score(expected_items: list[str], project: ProjectSummary) -> tuple[int, list[str]]:
     if not expected_items:
         return 55, []
     matched = 0
     evidence: list[str] = []
-    searchable = " ".join(project.files + list(project.file_summaries.values())).lower()
+    # Match on whole word tokens, not substrings: "test" must not match "latest".
+    searchable_tokens = _tokenize(" ".join(project.files + list(project.file_summaries.values())))
     for item in expected_items:
-        tokens = [token.strip(".,:;!?()[]").lower() for token in item.replace("-", " ").split()]
-        meaningful = [token for token in tokens if len(token) >= 4]
-        if any(token in searchable for token in meaningful):
+        meaningful = [token for token in _tokenize(item.replace("-", " ")) if len(token) >= 4]
+        if any(token in searchable_tokens for token in meaningful):
             matched += 1
             evidence.extend(find_evidence_for_terms(project, meaningful[:3]))
     score = round((matched / len(expected_items)) * 100)
